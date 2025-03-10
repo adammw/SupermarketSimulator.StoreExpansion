@@ -1,0 +1,78 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>StoreExpansion</AssemblyName>
+    <Description>Store Expansion</Description>
+    <Version>0.0.1</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+		<BaseOutputPath>bin/</BaseOutputPath>
+		<SupermarketSimulatorDir>D:\Games\Supermarket Simulator Debug\</SupermarketSimulatorDir>
+		<BepInExPluginsDir>$(SupermarketSimulatorDir)\BepInEx\plugins\</BepInExPluginsDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.Core" Version="5.*" />
+    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
+    <PackageReference Include="UnityEngine.Modules" Version="2021.3.31" IncludeAssets="compile" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+  </ItemGroup>
+  
+  <ItemGroup>
+		<Reference Include="Assembly-CSharp">
+			<HintPath>$(SupermarketSimulatorDir)\Supermarket Simulator_Data\Managed\Assembly-CSharp.dll</HintPath>
+		</Reference>
+		<Reference Include="MyBox">
+			<HintPath>$(SupermarketSimulatorDir)\Supermarket Simulator_Data\Managed\MyBox.dll</HintPath>
+		</Reference>
+		<Reference Include="Unity.Localization">
+			<HintPath>$(SupermarketSimulatorDir)\Supermarket Simulator_Data\Managed\Unity.Localization.dll</HintPath>
+		</Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\*.png" />
+  </ItemGroup>
+
+	<Target Name="AddGitMetadata" BeforeTargets="GetAssemblyAttributes">
+		<!--Executes the Git Commands to get the Hash and Branch-->
+		<Exec Command="git rev-parse --short=8  HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitHash)' == '' ">
+			<Output TaskParameter="ConsoleOutput" PropertyName="CommitHash" />
+		</Exec>
+		<Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitBranch)' == '' ">
+			<Output TaskParameter="ConsoleOutput" PropertyName="CommitBranch" />
+		</Exec>
+
+		<PropertyGroup>
+			<InformationalVersion Condition=" $(CommitHash) != '' ">$(Version)-$(CommitHash)</InformationalVersion>
+		</PropertyGroup>
+
+		<!--Generates the ItemGroup and all AssemblyMetadata Tags-->
+		<ItemGroup>
+			<AssemblyMetadata Include="BuildTimestamp" Value="$([System.DateTime]::UtcNow.ToString(yyyy-MM-ddTHH:mm:ssK))" />
+			<AssemblyMetadata Condition=" $(CommitHash) != '' " Include="CommitHash" Value="$(CommitHash)" />
+			<AssemblyMetadata Condition=" $(CommitBranch) != '' " Include="CommitBranch" Value="$(CommitBranch)" />
+		</ItemGroup>
+	</Target>
+
+	<Target Name="CopyUIFiles" AfterTargets="AfterBuild">
+		<Message Importance="high" Text="Copying $(OutputPath)\StoreExpansion.dll to Supermarket Simulator plugins folder $(BepInExPluginsDir)" />
+		<Copy SourceFiles="$(OutputPath)\StoreExpansion.dll" DestinationFiles="$(BepInExPluginsDir)\StoreExpansion.dll" />
+		<Copy SourceFiles="$(OutputPath)\StoreExpansion.pdb" DestinationFiles="$(BepInExPluginsDir)\StoreExpansion.pdb" />
+	</Target>
+
+	<Target Name="PackageZIP" AfterTargets="AfterBuild" Condition="'$(Configuration)'=='Release'">
+		<Message Importance="high" Text="Creating ZIP file for $(OutputPath)\StoreExpansion.dll" />
+		<RemoveDir Directories="$(OutputPath)\zip" />
+		<Copy SourceFiles="$(ProjectDir)\README.md" DestinationFolder="$(OutputPath)\zip\" />
+		<Copy SourceFiles="$(OutputPath)\StoreExpansion.dll" DestinationFiles="$(OutputPath)\zip\BepInEx\plugins\StoreExpansion.dll" />
+		
+		<ZipDirectory SourceDirectory="$(OutputPath)\zip" DestinationFile="$(OutputPath)\StoreExpansion_v$(Version).zip" />
+		<RemoveDir Directories="$(OutputPath)\zip" />
+	</Target>
+</Project>
