@@ -52,28 +52,6 @@ namespace StoreExpansion
         [HarmonyPatch(typeof(SectionManager), "Awake")]
         public static void AwakePrefix(SectionManager __instance)
         {
-            // move walls
-            GameObject wallsContainer = GameObject.Find("/---GAME---/Store/Store &&/Walls");
-            foreach (int i in new int[] { 1, 3, 6, 7, 8 })
-            {
-                wallsContainer.transform.GetChild(i).localPosition = wallsContainer.transform.GetChild(i).localPosition.OffsetX(-12);
-            }
-
-            var CloneWall = (int idx, Vector3 offset) =>
-            {
-                GameObject newWall = GameObject.Instantiate(wallsContainer.transform.GetChild(idx).gameObject);
-                newWall.transform.localPosition = newWall.transform.localPosition + offset;
-                newWall.transform.SetParent(wallsContainer.transform);
-            };
-
-            CloneWall(5, new Vector3(-4, 0, 8));
-            CloneWall(5, new Vector3(-8, 0, 8));
-            CloneWall(5, new Vector3(-12, 0, 8));
-
-            CloneWall(9, new Vector3(-4, 0, 8));
-            CloneWall(9, new Vector3(-8, 0, 8));
-            CloneWall(9, new Vector3(-12, 0, 8));
-
             Plugin.CloneSections();
         }
 

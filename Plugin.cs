@@ -1,10 +1,12 @@
 ﻿using __Project__.Scripts.FloorPaintSystem;
 using __Project__.Scripts.Managers;
+using __Project__.Scripts.WallPaintSystem;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using MyBox;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -35,6 +37,7 @@ namespace StoreExpansion
                 List<SectionSO> sections = Singleton<IDManager>.Instance.Sections;
                 SectionSO sectionToClone = sections[sections.Count - 1];
 
+                // clone sections for SectionManager
                 for (int i = 0; i < 15; i++)
                 {
                     SectionSO newSection = ScriptableObject.CreateInstance<SectionSO>();
@@ -47,13 +50,43 @@ namespace StoreExpansion
                     newSection.DailyRentAddition = sectionToClone.DailyRentAddition;
                     sections.Add(newSection);
                 }
+
+                // move walls
+                GameObject wallsContainer = GameObject.Find("/---GAME---/Store/Store &&/Walls");
+                foreach (int i in new int[] { 1, 3, 6, 7, 8 })
+                {
+                    wallsContainer.transform.GetChild(i).localPosition = wallsContainer.transform.GetChild(i).localPosition.OffsetX(-12);
+                }
+
+                int lastWallID = Singleton<PaintManager>.Instance.walls.Last().paintData.wallID;
+
+                var CloneWall = (int idx, Vector3 offset) =>
+                {
+                    GameObject newWall = GameObject.Instantiate(wallsContainer.transform.GetChild(idx).gameObject);
+                    newWall.transform.localPosition = newWall.transform.localPosition + offset;
+                    newWall.transform.SetParent(wallsContainer.transform);
+
+                    newWall.GetComponentsInChildren<PaintableWall>().ForEach(pw =>
+                    {
+                        int wallID = lastWallID++;
+                        pw.paintData = new PaintData(wallID, 1);
+                        Singleton<PaintManager>.Instance.walls.Add(pw);
+                    });                    
+                };
+
+                CloneWall(5, new Vector3(-4, 0, 8));
+                CloneWall(5, new Vector3(-8, 0, 8));
+                CloneWall(5, new Vector3(-12, 0, 8));
+
+                CloneWall(9, new Vector3(-4, 0, 8));
+                CloneWall(9, new Vector3(-8, 0, 8));
+                CloneWall(9, new Vector3(-12, 0, 8));
             }
         }
 
         public static void CloneSections()
         {
             SectionManager sectionManager = Singleton<SectionManager>.Instance;
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
 
             // Clone Section
             Section[] sections = sectionManager.transform.GetComponentsInChildren<Section>();
@@ -69,7 +102,9 @@ namespace StoreExpansion
             {
                 GameObject newSection = GameObject.Instantiate(sectionToClone, sectionToClone.transform.parent);
                 newSection.name = $"SectionClone ({index})";
+                newSection.transform.SetParent(sectionManager.transform);
 
+                // move something?
                 for (int i = 0; i < newSection.transform.childCount; i++)
                 {
                     Transform child = newSection.transform.GetChild(i);
@@ -79,7 +114,15 @@ namespace StoreExpansion
                         grandChild.transform.localPosition = grandChild.transform.localPosition.OffsetXZ(-4 * ((index/5)+1), (4-index%5) * 4);
                     }
                 }
-                newSection.transform.SetParent(sectionManager.transform);
+
+                // add walls to the paint manager for loading/saving wall paint
+                int lastWallID = Singleton<PaintManager>.Instance.walls.Last().paintData.wallID;
+                newSection.GetComponentsInChildren<PaintableWall>().ForEach(pw =>
+                {
+                    int wallID = lastWallID++;
+                    pw.paintData = new PaintData(wallID, 1);
+                    Singleton<PaintManager>.Instance.walls.Add(pw);
+                });
 
                 // Clone Floor
                 Plugin.Log.LogInfo($"cloning floor {floorToClone} - {floorToClone.transform.localPosition}");
@@ -87,7 +130,13 @@ namespace StoreExpansion
                 newFloor.name = $"FloorClone ({index})";
                 newFloor.transform.localPosition = newFloor.transform.localPosition.OffsetXZ(-4 * ((index / 5) + 1), (4 - index%5) * 4);
                 FloorTextureData defaultFloorTexData = Singleton<PaintManager>.Instance.GetTextureDataFromList(FloorTextureType.TYPE1_DEFAULT);
-                newFloor.GetComponentsInChildren<PaintableFloor>().ForEach(pf => { if (pf.TextureData == null) { pf.Initialize(defaultFloorTexData); } });
+                int lastFloorID = Singleton<PaintManager>.Instance.floors.Last().floorSaveData.floorId;
+                newFloor.GetComponentsInChildren<PaintableFloor>().ForEach(pf => {
+                    if (pf.TextureData == null) { pf.Initialize(defaultFloorTexData); }
+                    pf.floorSaveData = new FloorSaveData(lastFloorID++, FloorTextureType.TYPE1_DEFAULT);
+
+                    Singleton<PaintManager>.Instance.floors.Add(pf);
+                });
 
 
                 // Clone Ceiling
