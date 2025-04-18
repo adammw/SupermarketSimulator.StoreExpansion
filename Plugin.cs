@@ -222,6 +222,14 @@ namespace StoreExpansion
                 GameObject newFloor = GameObject.Instantiate(floorToClone, floorToClone.transform.parent);
                 newFloor.name = $"FloorClone ({index})";
                 newFloor.transform.localPosition = newFloor.transform.localPosition.OffsetXZ(-4 * (1+(index/3)), -4 * (2 - index%3));
+                FloorTextureData defaultFloorTexData = Singleton<PaintManager>.Instance.GetTextureDataFromList(FloorTextureType.TYPE1_DEFAULT);
+                int lastFloorID = Singleton<PaintManager>.Instance.floors.Last().floorSaveData.floorId;
+                newFloor.GetComponentsInChildren<PaintableFloor>().ForEach(pf => {
+                    if (pf.TextureData == null) { pf.Initialize(defaultFloorTexData); }
+                    pf.floorSaveData = new FloorSaveData(lastFloorID++, FloorTextureType.TYPE1_DEFAULT);
+
+                    Singleton<PaintManager>.Instance.floors.Add(pf);
+                });
 
                 // Create ceiling
                 Plugin.Log.LogInfo($"cloning ceiling {ceilingToClone} - {ceilingToClone.transform.parent}");
