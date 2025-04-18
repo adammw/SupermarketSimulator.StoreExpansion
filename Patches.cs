@@ -35,10 +35,14 @@ namespace StoreExpansion
             bool isInside = Singleton<PlayerController>.Instance.IsInside;
             if (isInside != hiddenBuildings)
             {
-                // show these buildings only when outside, they collide with inside the expanded store
+                // show these buildings only when outside, they collide with inside the expanded store/storage
                 GameObject.Find("---ENVIRONMENT---/NewYorkCity/Houses/NYC_Building_15_1/SM_NYC_Building_15")?.SetActive(!isInside);
+                GameObject.Find("---ENVIRONMENT---/NewYorkCity/Houses/NYC_Building_15_1/P_Spa/SM_BushSpa")?.SetActive(!isInside);
                 GameObject.Find("---ENVIRONMENT---/NewYorkCity/Houses/NYC_Building_8_1 (10)/SM_NYC_Building_8")?.SetActive(!isInside);
                 GameObject.Find("---ENVIRONMENT---/NewYorkCity/Houses/NYC_Building_8_2 (6)/SM_NYC_Building_8")?.SetActive(!isInside);
+                GameObject.Find("---ENVIRONMENT---/NewYorkCity/Houses/NYC_Building_6_1 1 (1)/SM_NYC_Building_6")?.SetActive(!isInside);
+                GameObject.Find("---ENVIRONMENT---/NewYorkCity/Sidewalk &&/SideWalks/Sidewalk_4x4_A_01 (289)")?.SetActive(!isInside);
+
                 hiddenBuildings = isInside;
             }
         }
@@ -54,39 +58,16 @@ namespace StoreExpansion
         {
             Plugin.CloneSections();
         }
+    }
 
+    [HarmonyPatch]
+    class StorageSectionManagerPatches
+    {
         [HarmonyPrefix]
-        [HarmonyPatch(typeof(SectionManager), "Start")]
-        public static void StartPrefix()
+        [HarmonyPatch(typeof(StorageSectionManager), "Awake")]
+        public static void AwakePrefix(StorageSectionManager __instance)
         {
-            ListSections();
-        }
-
-        public static void ListSections()
-        {
-            SectionManager sectionManager = Singleton<SectionManager>.Instance;
-            Plugin.Log.LogMessage("Sections: ");
-            foreach (var section in sectionManager.sections)
-            {
-                Plugin.Log.LogMessage($"{section} - ${section.gameObject} - ${section.gameObject.transform.localPosition}");
-                Traverse t = new Traverse(section);
-
-                GameObject[] toBeDisabledObjs = t.Field("m_ToBeDisabled").GetValue<GameObject[]>();
-                Plugin.Log.LogMessage("ToBeDisabled: ");
-                foreach (var obj in toBeDisabledObjs)
-                {
-                    Plugin.Log.LogMessage($"{obj} - ${obj.transform.localPosition}");
-                    Plugin.ListGameObjects(obj);
-                }
-
-                GameObject[] toBeEnabledObjs = t.Field("m_ToBeEnabled").GetValue<GameObject[]>();
-                Plugin.Log.LogMessage("ToBeEnabled: ");
-                foreach (var obj in toBeEnabledObjs)
-                {
-                    Plugin.Log.LogMessage($"{obj} - ${obj.transform.localPosition}");
-                    Plugin.ListGameObjects(obj);
-                }
-            }
+            Plugin.CloneStorageSections();
         }
     }
 }
